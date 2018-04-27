@@ -1,0 +1,28 @@
+#!/bin/sh
+#
+# convert raw (IMG) Osborne 1 disk image to HFE format
+#
+# raw images are useful for editing with cpmtools: http://www.moria.de/~michael/cpmtools/ https://github.com/lipro/cpmtools
+#
+# requires dsktrans (part of libdsk) http://www.seasip.info/Unix/LibDsk/ https://github.com/lipro/libdsk
+# requires disk-analyse (part of Disk-Utilities) https://github.com/keirf/Disk-Utilities
+#
+# more details at https://www.richardloxley.com/2018/04/27/osborne-restoration-part-16-transferring-cpm-software
+
+
+if [ $# -ne 2 ]
+then
+        echo "Usage: $0 <source> <destination>"
+        exit 1
+fi
+
+# disk-analyse infers format from file suffix
+
+TEMP_INTERMEDIATE="temp_image_$$.imd"
+TEMP_DEST="temp_image_$$.hfe"
+
+dsktrans -itype raw -format osborne1 -otype imd "$1" $TEMP_INTERMEDIATE >/dev/null
+disk-analyse -q $TEMP_INTERMEDIATE $TEMP_DEST
+
+rm $TEMP_INTERMEDIATE
+mv $TEMP_DEST "$2"

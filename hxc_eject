@@ -1,0 +1,80 @@
+#/bin/sh
+#
+# Unmounts a USB drive, remove all the extraneous files that macOS installs on it, and sorts the raw FAT filesytem into alphabetical order
+#
+# Useful for USB drives to be used in an HxC or FlashFloppy USB disk emulator
+#
+# requires FATSort:
+# http://fatsort.sourceforge.net/
+# https://sourceforge.net/projects/fatsort/files/
+#
+# sequence inspired by
+# https://unfinishedbitness.info/2014/04/16/alphabetically-sorting-fat-usb-drives-with-mac-osx/
+
+
+# edit this
+FATSORT=/Users/Richard/bin/fatsort
+
+
+# error handling function
+die()
+{
+	echo "$*"
+	exit 1
+}
+
+
+if [ $# -ne 1 ]
+then
+        echo "Usage: $0 <volume name>"
+	echo
+	echo "Volumes are:"
+	cd /Volumes
+	for x in *
+	do
+		echo -n '"'
+		echo -n "$x"
+		echo '"'
+	done
+        exit 1
+fi
+
+
+USB_STICK_NAME=$1
+
+# check USB stick is mounted
+[ -d "/Volumes/$USB_STICK_NAME/" ] || die "The USB stick doesn't seem to be mounted at /Volumes/$USB_STICK_NAME/"
+
+# find corresponding device
+device=`mount | grep " on /Volumes/$USB_STICK_NAME (" | sed 's/ .*//'`
+[ -n "$device" ] || die "Cannot work out device the USB stick is mounted on"
+
+# turn off indexing so OSX doesn't try to recreate Spotlight directory as we delete it
+echo "* Turning off Spotlight indexing *"
+sudo mdutil -i off "/Volumes/$USB_STICK_NAME/" >/dev/null || die "Failed to turn off indexing"
+
+# delete junk
+echo "* Deleting OSX-specific files *"
+sudo rm -rf "/Volumes/$USB_STICK_NAME/.Spotlight-V100"
+sudo rm -rf "/Volumes/$USB_STICK_NAME/.Trashes"
+sudo rm -rf "/Volumes/$USB_STICK_NAME/._.Trashes"
+sudo rm -rf "/Volumes/$USB_STICK_NAME/.fseventsd"
+sudo find "/Volumes/$USB_STICK_NAME/" -name '._*' -exec rm {} \;
+
+# unmount disk
+echo "* Unmounting disk *"
+#sudo diskutil quiet umount $device || die "Failed to unmount USB stick"
+sudo diskutil umount $device || die "Failed to unmount USB stick"
+
+# sort it
+echo "* Sorting disk *"
+sudo $FATSORT -q $device || die "Failed to sort disk"
+
+# uncomment the following lines to list sorted contents
+#echo "* Current disk contents *"
+#sudo $FATSORT -l $device
+
+# done
+echo "*** If no errors appear above, it is now safe to remove the USB stick \"$USB_STICK_NAME\" ***"
+
+

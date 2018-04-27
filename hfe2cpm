@@ -1,0 +1,32 @@
+#!/bin/sh
+#
+# convert HFE format disk images to raw IMG format
+#
+# raw images are useful for editing with cpmtools: http://www.moria.de/~michael/cpmtools/ https://github.com/lipro/cpmtools
+#
+# requires disk-analyse (part of Disk-Utilities) https://github.com/keirf/Disk-Utilities
+#
+# more details at https://www.richardloxley.com/2018/04/27/osborne-restoration-part-16-transferring-cpm-software
+
+
+if [ $# -ne 2 ]
+then
+        echo "Usage: $0 <source> <destination>"
+        exit 1
+fi
+
+# disk-analyse infers format from file suffix
+
+TEMP_SRC="temp_image_$$.hfe"
+TEMP_INTERMEDIATE="temp_image_$$.imd"
+TEMP_DEST="temp_image_$$.img"
+
+cp "$1" $TEMP_SRC
+
+disk-analyse -q $TEMP_SRC $TEMP_INTERMEDIATE
+disk-analyse -q $TEMP_INTERMEDIATE $TEMP_DEST
+
+rm $TEMP_SRC
+rm $TEMP_INTERMEDIATE
+
+mv $TEMP_DEST "$2"
